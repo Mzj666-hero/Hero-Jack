@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>直播排行榜</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:微软雅黑}
+body{background:#0f1a2e;color:#fff;padding:30px}
+.container{max-width:1000px;margin:0 auto}
+h1{text-align:center;color:#00e0ff;margin-bottom:30px}
+.rank-box{background:#1a243e;border-radius:15px;padding:25px;margin-bottom:20px}
+.rank-title{font-size:20px;color:#ff5e8d;margin-bottom:15px;font-weight:bold}
+.item{display:flex;align-items:center;padding:12px 15px;border-bottom:1px solid #2a345e}
+.item:last-child{border-bottom:none}
+.num{width:40px;height:40px;background:#253052;border-radius:50%;display:flex;
+align-items:center;justify-content:center;font-weight:bold;margin-right:15px}
+.name{flex:1;font-size:16px}
+.score{color:#00e0ff;font-weight:bold}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>直播积分排行榜</h1>
+<div class="rank-box">
+<div class="rank-title">主播排行榜</div>
+<div id="anchorList"></div>
+</div>
+<div class="rank-box">
+<div class="rank-title">观众排行榜</div>
+<div id="viewerList"></div>
+</div>
+</div>
+<script>
+async function load(){
+	let a=await fetch("/api/anchors?page=1&keyword=")
+	let aData=await a.json()
+	let aHtml=aData.data.map((d,i)=>`
+	<div class="item">
+	<div class="num">${i+1}</div>
+	<div class="name">${d.name}</div>
+	<div class="score">${d.score}分</div>
+	</div>`).join("")
+	document.getElementById("anchorList").innerHTML=aHtml
+	
+	let v=await fetch("/api/viewers?page=1&keyword=")
+	let vData=await v.json()
+	let vHtml=vData.data.map((d,i)=>`
+	<div class="item">
+	<div class="num">${i+1}</div>
+	<div class="name">${d.name}</div>
+	<div class="score">${d.score}分</div>
+	</div>`).join("")
+	document.getElementById("viewerList").innerHTML=vHtml
+}
+load()
+</script>
+</body>
+</html>

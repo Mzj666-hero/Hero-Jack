@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>排行榜管理后台</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Microsoft YaHei", sans-serif; }
+    body { background: #0f0f1a; color: #eee; padding: 20px; }
+    .container { max-width: 1000px; margin: 0 auto; }
+    h1 { text-align: center; background: linear-gradient(90deg, #ff2a6d, #05d9e8);
+         -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 20px; }
+    .tabs { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+    .tab-btn { padding: 10px 20px; border-radius: 20px; border: none; background: #1a1a2e;
+               color: #ccc; cursor: pointer; }
+    .tab-btn.active { background: linear-gradient(90deg, #ff2a6d, #05d9e8); color: #fff; }
+    .panel { display: none; background: #1a1a2e; padding: 20px; border-radius: 12px; }
+    .panel.show { display: block; }
+    .form { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .form input { padding: 8px 12px; border-radius: 6px; border: 1px solid #2e2e4e;
+                  background: #252542; color: #fff; }
+    .form button { padding: 8px 16px; border-radius: 6px; border: none;
+                   background: #05d9e8; color: #000; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #2e2e4e; }
+    th { color: #05d9e8; }
+    .action-btn { padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer;
+                  margin-right: 5px; font-size: 12px; }
+    .edit { background: #f39c12; color: #000; }
+    .delete { background: #e74c3c; color: #fff; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 排行榜管理后台</h1>
+    <div class="tabs">
+      <button class="tab-btn active" data-panel="anchor">主播管理</button>
+      <button class="tab-btn" data-panel="viewer">观众管理</button>
+    </div>
+
+    <div id="anchor" class="panel show">
+      <div class="form" id="anchorForm">
+        <input type="hidden" id="anchorId">
+        <input type="text" id="anchorName" placeholder="昵称" required>
+        <input type="number" id="anchorScore" placeholder="积分" required>
+        <input type="text" id="anchorAvatar" placeholder="头像文字/链接" required>
+        <button onclick="saveAnchor()">保存</button>
+      </div>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>昵称</th><th>积分</th><th>头像</th><th>操作</th></tr>
+        </thead>
+        <tbody id="anchorTable"></tbody>
+      </table>
+    </div>
+
+    <div id="viewer" class="panel">
+      <div class="form" id="viewerForm">
+        <input type="hidden" id="viewerId">
+        <input type="text" id="viewerName" placeholder="昵称" required>
+        <input type="number" id="viewerScore" placeholder="积分" required>
+        <input type="text" id="viewerAvatar" placeholder="头像文字/链接" required>
+        <button onclick="saveViewer()">保存</button>
+      </div>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>昵称</th><th>积分</th><th>头像</th><th>操作</th></tr>
+        </thead>
+        <tbody id="viewerTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('show'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.panel).classList.add('show');
+        loadAnchors();
+        loadViewers();
+      });
+    });
+
+    async function loadAnchors() {
+      const res = await fetch('/api/anchors?page=1&keyword=');
+      const { data } = await res.json();
+      const html = data.map(item => `
+        <tr>
+          <td>${item.id}</td>
+          <td>${item.name}</td>
+          <td>${item.score}</td>
+          <td>${item.avatar}</td>
+          <td>
+            <button class="action-btn edit" onclick="editAnchor(${item.id})">编辑</button>
+            <button class="action-btn delete" onclick="deleteAnchor(${item.id})">删除</button>
+          </td>
+        </tr>
+      `).join('');
+      document.getElementById('anchorTable').innerHTML = html;
+    }
+
+    async function loadViewers() {
+      const res = await fetch('/api/viewers?page=1&keyword=');
+      const { data } = await res.json();
+      const html = data.map(item => `
+        <tr>
+          <td>${item.id}</td>
+          <td>${item.name}</td>
+          <td>${item.score}</td>
+          <td>${item.avatar}</td>
+          <td>
+            <button class="action-btn edit" onclick="editViewer(${item.id})">编辑</button>
+            <button class="action-btn delete" onclick="deleteViewer(${item.id})">删除</button>
+          </td>
+        </tr>
+      `).join('');
+      document.getElementById('viewerTable').innerHTML = html;
+    }
+
+    async function saveAnchor() {
+      const id = document.getElementById('anchorId').value;
+      const name = document.getElementById('anchorName').value;
+      const score = document.getElementById('anchorScore').value;
+      const avatar = document.getElementById('anchorAvatar').value;
+      const method = id ? 'PUT' : 'POST';
+      const url = id ? `/api/anchors/${id}` : '/api/anchors';
+      await fetch(url, {
+        method,
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, score, avatar})
+      });
+      document.getElementById('anchorForm').reset();
+      document.getElementById('anchorId').value = '';
+      loadAnchors();
+    }
+
+    async function editAnchor(id) {
+      const res = await fetch(`/api/anchors?page=1&keyword=`);
+      const { data } = await res.json();
+      const item = data.find(x => x.id == id);
+      document.getElementById('anchorId').value = item.id;
+      document.getElementById('anchorName').value = item.name;
+      document.getElementById('anchorScore').value = item.score;
+      document.getElementById('anchorAvatar').value = item.avatar;
+    }
+
+    async function deleteAnchor(id) {
+      if(confirm('确定删除？')) {
+        await fetch(`/api/anchors/${id}`, {method: 'DELETE'});
+        loadAnchors();
+      }
+    }
+
+    async function saveViewer() {
+      const id = document.getElementById('viewerId').value;
+      const name = document.getElementById('viewerName').value;
+      const score = document.getElementById('viewerScore').value;
+      const avatar = document.getElementById('viewerAvatar').value;
+      const method = id ? 'PUT' : 'POST';
+      const url = id ? `/api/viewers/${id}` : '/api/viewers';
+      await fetch(url, {
+        method,
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, score, avatar})
+      });
+      document.getElementById('viewerForm').reset();
+      document.getElementById('viewerId').value = '';
+      loadViewers();
+    }
+
+    async function editViewer(id) {
+      const res = await fetch(`/api/viewers?page=1&keyword=`);
+      const { data } = await res.json();
+      const item = data.find(x => x.id == id);
+      document.getElementById('viewerId').value = item.id;
+      document.getElementById('viewerName').value = item.name;
+      document.getElementById('viewerScore').value = item.score;
+      document.getElementById('viewerAvatar').value = item.avatar;
+    }
+
+    async function deleteViewer(id) {
+      if(confirm('确定删除？')) {
+        await fetch(`/api/viewers/${id}`, {method: 'DELETE'});
+        loadViewers();
+      }
+    }
+
+    loadAnchors();
+    loadViewers();
+  </script>
+</body>
+</html>
